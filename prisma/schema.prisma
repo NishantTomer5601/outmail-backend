@@ -10,93 +10,92 @@ datasource db {
 }
 
 model User {
-  id               String          @id @default(uuid())
-  google_id        String?         
-  email            String          @unique
-  display_name     String
+  id                String    @id @default(uuid())
+  google_id         String?
+  email             String    @unique
+  display_name      String
   app_password_hash String
-  created_at       DateTime        @default(now())
-  last_login       DateTime?
+  created_at        DateTime  @default(now())
+  last_login        DateTime?
+  isFirstTime       Boolean   @default(true)
+  deleted_at        DateTime?
 
-  campaigns        Campaign[]
-  csv_uploads      CsvUpload[]
-  resumes          Resume[]
-  email_templates  EmailTemplate[]
+  campaigns       Campaign[]
+  csv_uploads     CsvUpload[]
+  resumes         Resume[]
+  email_templates EmailTemplate[]
 }
 
 model Campaign {
-  id               String       @id @default(uuid())
-  user_id          String
-  csv_upload_id    String       @unique
-  resume_id        String?
-  template_id      String?
-  name             String
-  status           String
-  scheduled_start  DateTime
-  timezone         String
-  total_emails     Int
-  sent_emails      Int
-  failed_emails    Int
-  created_at       DateTime     @default(now())
-  started_at       DateTime?
-  completed_at     DateTime?
-  cancelled_at     DateTime?
-  paused_at        DateTime?
-  deleted_at       DateTime?
+  id              String    @id @default(uuid())
+  user_id         String
+  csv_upload_id   String    @unique
+  template_id     String?
+  name            String
+  status          String
+  scheduled_start DateTime
+  timezone        String
+  total_emails    Int
+  sent_emails     Int
+  failed_emails   Int
+  created_at      DateTime  @default(now())
+  started_at      DateTime?
+  completed_at    DateTime?
+  cancelled_at    DateTime?
+  paused_at       DateTime?
+  deleted_at      DateTime?
 
-  user             User         @relation(fields: [user_id], references: [id])
-  csv_upload       CsvUpload    @relation(fields: [csv_upload_id], references: [id])
-  resume           Resume?      @relation(fields: [resume_id], references: [id])
-  template         EmailTemplate? @relation(fields: [template_id], references: [id])
-  email_logs       EmailLog[]
+  user            User             @relation(fields: [user_id], references: [id])
+  csvUpload      CsvUpload  @relation(fields: [csv_upload_id], references: [id], onDelete: Cascade)
+  template        EmailTemplate?   @relation(fields: [template_id], references: [id])
+  email_logs      EmailLog[]
+  campaignResumes CampaignResume[]
 }
 
 model CsvUpload {
-  id                String     @id @default(uuid())
+  id                String    @id @default(uuid())
   s3_path           String
-  uploaded_at       DateTime   @default(now())
+  uploaded_at       DateTime  @default(now())
   original_filename String
   user_id           String
-  campaign          Campaign?  @relation() // Passive side of one-to-one
+  campaign          Campaign? @relation() // Passive side of one-to-one
 
-  user              User       @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id])
 }
 
 model Resume {
-  id          String     @id @default(uuid())
+  id          String   @id @default(uuid())
   name        String
   s3_path     String
-  uploaded_at DateTime   @default(now())
+  uploaded_at DateTime @default(now())
   user_id     String
 
-  user        User       @relation(fields: [user_id], references: [id])
-  campaigns   Campaign[]
+  user           User             @relation(fields: [user_id], references: [id])
+  CampaignResume CampaignResume[]
 }
 
 model EmailTemplate {
-  id           String     @id @default(uuid())
+  id           String   @id @default(uuid())
   name         String
+  subject      String
   html_content String
-  created_at   DateTime   @default(now())
+  created_at   DateTime @default(now())
   user_id      String
 
-  user         User       @relation(fields: [user_id], references: [id])
-  campaigns    Campaign[]
+  user      User       @relation(fields: [user_id], references: [id])
+  campaigns Campaign[]
 }
 
 model EmailLog {
-  id               String     @id @default(uuid())
-  campaign_id      String
-  recipient_name   String
-  recipient_email  String
-  recipient_company String
-  sent_at          DateTime?
-  status           String
-  error_message    String?
-  preview_html     String
-  created_at       DateTime   @default(now())
+  id                String    @id @default(uuid())
+  campaign_id       String
+  sent_at           DateTime?
+  status            String
+  error_message     String?
+  preview_html      String
+  created_at        DateTime  @default(now())
 
-  campaign         Campaign   @relation(fields: [campaign_id], references: [id])
+  campaign Campaign @relation(fields: [campaign_id], references: [id])
 }
 
 model ContactMessage {
@@ -104,4 +103,14 @@ model ContactMessage {
   email     String
   message   String
   createdAt DateTime @default(now())
+}
+
+model CampaignResume {
+  id         String   @id @default(uuid())
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId String
+  resume     Resume   @relation(fields: [resumeId], references: [id])
+  resumeId   String
+
+  @@unique([campaignId, resumeId])
 }

@@ -4,7 +4,9 @@ import { handleLogin } from '../controllers/authController.js';
 import { updateName } from '../controllers/authController.js';
 import { myDetails } from '../controllers/authController.js';
 import jwt from 'jsonwebtoken';
+import { PrismaClient } from '@prisma/client';
 
+const prisma = new PrismaClient();
 const router = express.Router();
 
 router.post('/login', handleLogin);
@@ -29,7 +31,7 @@ router.get(
     failureRedirect: '/login',
     session: false,
   }),
-  (req, res) => {
+  async (req, res) => {
     // 🔍 Step 1: Log the entire user object returned by Passport
     //console.log('✅ OAuth req.user object:', JSON.stringify(req.user, null, 2));
 
@@ -40,11 +42,18 @@ router.get(
       display_name: req.user.display_name,
       google_id: req.user.google_id,
       isFirstTime: !req.user.app_password_hash,
+      last_login: new Date(),
     };
 
+    // Update last_login for the user in the database
+    await prisma.user.update({
+      where: { email: req.user.email },
+      data: { last_login: new Date() }
+    });
+
     // 🔍 Step 3: Log the payload to be signed into JWT
-    console.log('📦 JWT Payload:', payload);
-    console.log('user object:', req.user);
+    // console.log('📦 JWT Payload:', payload);
+    // console.log('user object:', req.user);
 
     // 🔐 Step 4: Sign the JWT
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -53,7 +62,7 @@ router.get(
     //console.log('🔐 JWT Token:', token);
 
     // 🔁 Step 6: Redirect with token
-       console.log('🚀 First-time user, redirecting to dashboard with token...', token , req.user?.google_id);
+      //  console.log('🚀 First-time user, redirecting to dashboard with token...', token , req.user?.google_id);
       res.redirect(`http://localhost:8080/dashboard?token=${token}&google_id=${req.user.google_id}`);
     
   }
