@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
-import bcrypt from 'bcrypt';
+import { encrypt } from '../utils/encryption.js';
 import jwt from 'jsonwebtoken';
 const prisma = new PrismaClient();
 
@@ -29,7 +29,7 @@ export const myDetails = async (req, res) => {
         display_name: true,
         created_at: true,
         last_login: true,
-        // Add any other fields you want to expose
+        isFirstTime: true,
       },
     });
 
@@ -43,10 +43,11 @@ export const myDetails = async (req, res) => {
   }
 }
 
+
 export const updateName = async (req, res) => {
   // 🟦 Log incoming request
-  console.log('🟦 [update-name] Headers:', req.headers);
-  console.log('🟦 [update-name] Body:', req.body);
+  // console.log('🟦 [update-name] Headers:', req.headers);
+  // console.log('🟦 [update-name] Body:', req.body);
 
   // 1. Get and verify JWT
   const authHeader = req.headers.authorization;
@@ -59,7 +60,7 @@ export const updateName = async (req, res) => {
   try {
     decoded = jwt.verify(token, process.env.JWT_SECRET);
     // 🟩 Log decoded JWT
-    console.log('🟩 [update-name] Decoded JWT:', decoded);
+    // console.log('🟩 [update-name] Decoded JWT:', decoded);
   } catch (err) {
     return res.status(401).json({ error: 'Invalid token' });
   }
@@ -77,7 +78,7 @@ export const updateName = async (req, res) => {
       data: { display_name: name },
     });
     // 🟪 Log updated user
-    console.log('🟪 [update-name] User after update:', user);
+    // console.log('🟪 [update-name] User after update:', user);
 
     // 4. Respond with updated user (without sensitive info)
     const { app_password_hash, ...userSafe } = user;
@@ -106,47 +107,36 @@ export const updateName = async (req, res) => {
 export const handleLogin = async (req, res) => {
   const { google_id, email, display_name, app_password_hash } = req.body;
 
-  // 🟧 Log incoming request body
-  console.log('🟧 [handleLogin] Received req.body:', req.body);
-
   if (!email || !display_name || !app_password_hash) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
   try {
-    // (Add this before hashing)
-    console.log('🟨 [handleLogin] Raw app_password_hash:', app_password_hash);
-
-    // Example if using bcrypt:
-    const hashedPassword = await bcrypt.hash(app_password_hash, 10);
-
-    // (Add this after hashing)
-    console.log('🟨 [handleLogin] Hashed app_password_hash:', hashedPassword);
+   const encryptedPassword = encrypt(app_password_hash);
 
     const user = await prisma.user.upsert({
-      where: { email }, // Find user by email
+      where: { email },
       update: {
         last_login: new Date(),
-        app_password_hash: hashedPassword, // Update password hash
-         // If found, update last login
+        app_password_hash: encryptedPassword,
+        display_name,
+        isFirstTime: false, 
       },
       create: {
         id: crypto.randomUUID(),
         google_id,
         email,
         display_name,
-        app_password_hash: hashedPassword, 
+        app_password_hash: encryptedPassword,
         last_login: new Date(),
+        isFirstTime: false, 
       },
     });
-    console.log('🟩 [handleLogin] User after upsert:', user);
 
     // Remove sensitive data before sending to frontend
     const { app_password_hash: _, ...userSafe } = user;
     res.status(200).json({ user: userSafe });
 
-    // 🟪 Log user object after upsert
-    console.log('🟪 [handleLogin] User after upsert:', user);
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Internal server error' });
