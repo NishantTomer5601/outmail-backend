@@ -64,9 +64,6 @@ const worker = new Worker(
     await prisma.emailLog.create({
       data: {
         campaign_id: campaignId,
-        recipient_name: recipient.name,
-        recipient_email: recipient.email,
-        recipient_company: recipient.company,
         sent_at: result.success ? new Date() : null,
         status: result.success ? 'sent' : 'failed',
         error_message: result.success ? null : result.error,

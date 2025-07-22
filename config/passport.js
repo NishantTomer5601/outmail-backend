@@ -11,7 +11,7 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        // Try to find user by google_id if present
+        // Try to find user by google_id if present 
         let user = null;
         if (profile.id) {
           user = await prisma.user.findFirst({

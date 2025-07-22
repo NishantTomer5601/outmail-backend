@@ -16,7 +16,7 @@ import resumesRouter from './routes/resumes.js';
 
 import { createBullBoard } from '@bull-board/api';
 import { ExpressAdapter } from '@bull-board/express';
-import pkg from '@bull-board/api/dist/src/queueAdapters/bullMQ.js'; // 👈 v5.9.1 compatible import
+import pkg from '@bull-board/api/dist/src/queueAdapters/bullMQ.js'; 
 const { BullMQAdapter } = pkg;
 
 import { emailQueue } from './queue/emailQueue.js';
