@@ -10,8 +10,12 @@ const s3 = new S3Client({
 
 // Helper to get S3 key from a full S3 URL
 export function getS3KeyFromUrl(url) {
-  console.log("URL: ", url);
-  return url.split('.amazonaws.com/')[1];
+  try {
+    const urlObject = new URL(url);
+    return urlObject.pathname.substring(1);
+  } catch (error) {
+    return url.split('.amazonaws.com/')[1];
+  }
 }
 
 export async function uploadAttachmentToS3(fileBuffer, fileName, mimetype) {
@@ -24,7 +28,7 @@ export async function uploadAttachmentToS3(fileBuffer, fileName, mimetype) {
     ContentType: mimetype,
   });
   await s3.send(command);
-  return `${process.env.S3_URL}/${key}`;
+  return `https://${bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 }
 
 export async function uploadCsvToS3(fileBuffer, fileName, mimetype) {
@@ -37,7 +41,7 @@ export async function uploadCsvToS3(fileBuffer, fileName, mimetype) {
     ContentType: mimetype,
   });
   await s3.send(command);
-  return `${process.env.S3_URL}/${key}`;
+  return `https://${bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 }
 
 export async function deleteAttachmentFromS3(s3Url) {
@@ -47,7 +51,7 @@ export async function deleteAttachmentFromS3(s3Url) {
 }
 
 // ✅ Exported helper to get file buffer from S3
-export async function getS3FileBufferFromUrl(s3Url) {
+export async function getS3FileBuffer(s3Url) {
   const bucket = process.env.S3_BUCKET;
   const key = getS3KeyFromUrl(s3Url);
   const command = new GetObjectCommand({ Bucket: bucket, Key: key });
@@ -58,8 +62,12 @@ export async function getS3FileBufferFromUrl(s3Url) {
     chunks.push(chunk);
   }
 
-  return {
-    buffer: Buffer.concat(chunks),
-    key,
-  };
+  return { buffer: Buffer.concat(chunks) };
+}
+
+export async function getS3Object(s3Url) {
+  const bucket = process.env.S3_BUCKET;
+  const key = getS3KeyFromUrl(s3Url);
+  const command = new GetObjectCommand({ Bucket: bucket, Key: key });
+  return await s3.send(command);
 }

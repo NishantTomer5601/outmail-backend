@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 import { decrypt } from './encryption.js';
-import { getS3FileBufferFromUrl, getS3KeyFromUrl } from './s3.js';
+import { getS3FileBuffer, getS3KeyFromUrl } from './s3.js';
 
 export default async function sendEmailWithGmail({ user, recipient, subject, text, attachments = [] }) {
   const decrypted = decrypt(user.app_password_hash);
@@ -17,7 +17,7 @@ export default async function sendEmailWithGmail({ user, recipient, subject, tex
 const formattedAttachments = await Promise.all(
   attachments.map(async ({ filename, path }) => {
     const key = getS3KeyFromUrl(path);
-    const { buffer } = await getS3FileBufferFromUrl(path);
+    const { buffer } = await getS3FileBuffer(path);
     return {
       filename,        // preserve the original filename
       content: buffer, // attach file buffer
