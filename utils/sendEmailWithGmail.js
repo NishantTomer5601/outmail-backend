@@ -14,16 +14,10 @@ export default async function sendEmailWithGmail({ user, recipient, subject, tex
   });
 
   // ✅ Convert S3 URLs to actual attachment buffers
-const formattedAttachments = await Promise.all(
-  attachments.map(async ({ filename, path }) => {
-    const key = getS3KeyFromUrl(path);
-    const { buffer } = await getS3FileBuffer(path);
-    return {
-      filename,        // preserve the original filename
-      content: buffer, // attach file buffer
-    };
-  })
-);
+const formattedAttachments = attachments.map(({ filename, content }) => ({
+    filename,
+    content
+  }));
 
   try {
     await transporter.sendMail({

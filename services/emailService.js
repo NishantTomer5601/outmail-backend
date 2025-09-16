@@ -1,14 +1,18 @@
 import nodemailer from 'nodemailer';
 import { decrypt } from '../utils/encryption.js';
-import pool from '../config/db.js';
+import prisma from '../prisma/prismaClient.js';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const sendEmailWithDelay = async (userEmail, recipients) => {
-  const userRes = await pool.query('SELECT app_password FROM users WHERE email = $1', [userEmail]);
-  const decrypted = decrypt(userRes.rows[0].app_password);
+  const user = await prisma.user.findUnique({
+    where: { email: userEmail },
+    select: { app_password_hash: true }
+  });
+  
+  const decrypted = decrypt(user.app_password_hash);
 
-  const transporter = nodemailer.createTransport({
+  const transporter = nodemailer.createTransporter({
     service: 'gmail',
     auth: {
       user: userEmail,

@@ -1,9 +1,12 @@
-import { createClient } from 'redis';
+import IORedis from 'ioredis';
 
-const redis = createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379',
+const redis = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
+    maxRetriesPerRequest: null,
+    retryDelayOnFailover: 100,
+    enableReadyCheck: false,
+    tls: process.env.REDIS_URL?.startsWith('rediss://') ? {} : undefined,
+    lazyConnect: true,
 });
-await redis.connect();
 
 function getISTMidnight() {
   const now = new Date();
