@@ -24,7 +24,6 @@ router.get(
       'https://www.googleapis.com/auth/gmail.send',
     ],
     accessType: 'offline',
-    approvalPrompt: 'force',
     prompt: 'consent',
     includeGrantedScopes: true,
   })
