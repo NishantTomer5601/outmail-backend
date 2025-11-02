@@ -8,22 +8,25 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
 model User {
   id                String    @id @default(uuid())
-  google_id         String?
+  google_id         String?   @unique
   email             String    @unique
-  display_name      String
-  app_password_hash String
+  display_name      String?
+  profile_picture   String?
+  
+  access_token      String?   // Short-lived OAuth token
+  refresh_token     String?   // Long-lived, used to get new access token
+  token_expiry      DateTime? // When the access_token will expire
+  
   created_at        DateTime  @default(now())
   last_login        DateTime?
-  isFirstTime       Boolean   @default(true)
   deleted_at        DateTime?
 
-  campaigns       Campaign[]
-  csv_uploads     CsvUpload[]
-  resumes         Resume[]
-  email_templates EmailTemplate[]
+  campaigns         Campaign[]
+  csv_uploads       CsvUpload[]
+  resumes           Resume[]
+  email_templates   EmailTemplate[]
 }
 
 model Campaign {

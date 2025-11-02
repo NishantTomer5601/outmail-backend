@@ -2,7 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import session from 'express-session';
+import passport from './config/passport.js';
 import { connectDB } from './config/db.js';
+import prisma from './prisma/prismaClient.js';
 import authRoutes from './routes/auth.js';
 import contactRoutes from './routes/contact.js';
 import campaignsRouter from './routes/campaigns.js';
@@ -30,6 +33,29 @@ app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+app.use(session({
+  secret: process.env.JWT_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false }
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
+
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id } });
+    done(null, user);
+  } catch (error) {
+    done(error, null);
+  }
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/auth', contactRoutes);
