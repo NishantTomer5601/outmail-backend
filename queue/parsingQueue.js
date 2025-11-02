@@ -11,4 +11,4 @@ const connection = {
     tls: redisUrl.protocol === 'rediss:' ? {} : undefined,
 };
 
-export const emailQueue = new Queue('emailQueue', { connection });
+export const parsingQueue = new Queue('parsingQueue', { connection });

@@ -1,15 +1,8 @@
-// db/index.js
-import pg from 'pg';
-const { Pool } = pg;
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: false, // Set to true if using SSL
-});
+import prisma from '../prisma/prismaClient.js';
 
 export const connectDB = async () => {
   try {
-    await pool.connect();
+    await prisma.$connect();
     console.log('PostgreSQL connected successfully');
   } catch (error) {
     console.error('Error connecting to PostgreSQL:', error);
@@ -17,4 +10,4 @@ export const connectDB = async () => {
   }
 };
 
-export default pool;
+export default prisma;
