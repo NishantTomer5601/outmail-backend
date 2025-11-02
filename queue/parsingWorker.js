@@ -26,7 +26,14 @@ function fillPlaceholders(template, data) {
   });
 }
 
-const connection = { host: process.env.REDIS_HOST || 'localhost', port: parseInt(process.env.REDIS_PORT || '6379') };
+const redisUrl = new URL(process.env.REDIS_URL || 'redis://localhost:6379');
+const connection = {
+    host: redisUrl.hostname,
+    port: parseInt(redisUrl.port) || 6379,
+    password: redisUrl.password,
+    username: redisUrl.username || 'default',
+    tls: redisUrl.protocol === 'rediss:' ? {} : undefined,
+};
 
 const parsingWorker = new Worker('parsingQueue', async (job) => {
     const { campaignId, userId, s3Url, originalFilename, templateId, attachmentIds, subject, body, startTime } = job.data;

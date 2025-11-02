@@ -15,7 +15,7 @@ import resumesRouter from './routes/resumes.js';
 
 import { createBullBoard } from '@bull-board/api';
 import { ExpressAdapter } from '@bull-board/express';
-import { BullMQAdapter } from '@bull-board/api/bullMQAdapter.js';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 
 import { emailQueue } from './queue/emailQueue.js';
 import { parsingQueue } from './queue/parsingQueue.js';

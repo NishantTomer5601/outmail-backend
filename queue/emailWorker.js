@@ -8,8 +8,22 @@ import { getS3FileBuffer } from '../utils/s3.js';
 const prisma = new PrismaClient();
 console.log('[Worker] Email Worker is running and ready to process jobs...');
 
-const redisCache = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379');
-const connection = { host: process.env.REDIS_HOST || 'localhost', port: parseInt(process.env.REDIS_PORT || '6379') };
+const redisCache = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
+    maxRetriesPerRequest: null,
+    retryDelayOnFailover: 100,
+    enableReadyCheck: false,
+    tls: process.env.REDIS_URL?.startsWith('rediss://') ? {} : undefined,
+    lazyConnect: true,
+});
+
+const redisUrl = new URL(process.env.REDIS_URL || 'redis://localhost:6379');
+const connection = {
+    host: redisUrl.hostname,
+    port: parseInt(redisUrl.port) || 6379,
+    password: redisUrl.password,
+    username: redisUrl.username || 'default',
+    tls: redisUrl.protocol === 'rediss:' ? {} : undefined,
+};
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const randomBackoffMs = () => (Math.floor(Math.random() * 4) + 2) * 60 * 1000; // 2–5 minutes
@@ -19,7 +33,6 @@ const emailWorker = new Worker('emailQueue', async (job) => {
     console.log(`[Email Worker] Processing job ${job.id} for recipient: ${recipient.email}`);
 
     try {
-      // 1. Rate Limiting (same as before)
       const { allowed, delayMs } = await canSendEmail(userId);
       if (!allowed) {
         console.log(`[Email Worker] User ${userId} rate limited. Rescheduling job ${job.id}.`);
