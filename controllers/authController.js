@@ -17,45 +17,21 @@ const generateToken = (user) => {
 /* ---------------------- GOOGLE CALLBACK HANDLER ---------------------- */
 export const handleGoogleCallback = async (req, res) => {
   try {
-    // Passport gives you access + refresh tokens + Google profile in req.user
-    const { profile, tokens } = req.user;
-    const { accessToken, refreshToken } = tokens;
+    // req.user is your user object from Passport (not tokens or profile)
+    const user = req.user;
 
-    const email = profile.emails?.[0]?.value;
-    const googleId = profile.id;
-    const displayName = profile.displayName;
-    const photo = profile.photos?.[0]?.value;
+    if (!user) {
+      console.error("No user found in req.user during Google callback");
+      return res.redirect(`${process.env.FRONTEND_URL}/login?error=google_failed`);
+    }
 
-    // Upsert user in your database
-    const user = await prisma.user.upsert({
-      where: { email },
-      update: {
-        google_id: googleId,
-        display_name: displayName,
-        profile_picture: photo,
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        token_expiry: new Date(Date.now() + 3500 * 1000), // ~1 hour expiry
-        last_login: new Date(),
-      },
-      create: {
-        google_id: googleId,
-        email,
-        display_name: displayName,
-        profile_picture: photo,
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        token_expiry: new Date(Date.now() + 3500 * 1000),
-      },
-    });
-
-    // Generate your own app JWT
+    // Generate JWT for your app
     const token = generateToken(user);
 
-    // Redirect user to frontend dashboard with JWT
+    // Redirect to frontend with token
     res.redirect(`${process.env.FRONTEND_URL}/dashboard?token=${token}`);
   } catch (error) {
-    console.error('Google callback error:', error);
+    console.error("Google callback error:", error);
     res.redirect(`${process.env.FRONTEND_URL}/login?error=authentication_failed`);
   }
 };
