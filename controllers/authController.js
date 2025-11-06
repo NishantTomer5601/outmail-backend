@@ -17,21 +17,31 @@ const generateToken = (user) => {
 /* ---------------------- GOOGLE CALLBACK HANDLER ---------------------- */
 export const handleGoogleCallback = async (req, res) => {
   try {
-    // req.user is your user object from Passport (not tokens or profile)
     const user = req.user;
-
+    
     if (!user) {
       console.error("No user found in req.user during Google callback");
       return res.redirect(`${process.env.FRONTEND_URL}/login?error=google_failed`);
     }
 
-    // Generate JWT for your app
+    // Generate JWT and set as HTTP-only cookie
     const token = generateToken(user);
+    
+    // Set secure HTTP-only cookie with environment-specific flags
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // HTTPS in production, HTTP in dev
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Cross-origin in prod
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      domain: process.env.NODE_ENV === 'production' ? '.outmail.in' : undefined, // Allow subdomain access in prod
+    };
 
-    // Redirect to frontend with token
-    res.redirect(`${process.env.FRONTEND_URL}/dashboard?token=${token}`);
+    res.cookie('token', token, cookieOptions);
+
+    // Redirect without token in URL
+    res.redirect(`${process.env.FRONTEND_URL}/dashboard`);
   } catch (error) {
-    console.error("Google callback error:", error);
+    console.error('Google callback error:', error);
     res.redirect(`${process.env.FRONTEND_URL}/login?error=authentication_failed`);
   }
 };
@@ -78,8 +88,20 @@ export const updateName = async (req, res) => {
     });
 
     const newToken = generateToken(updatedUser);
+    
+    // Update cookie with new token
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      domain: process.env.NODE_ENV === 'production' ? '.outmail.in' : undefined,
+    };
+
+    res.cookie('token', newToken, cookieOptions);
+    
     const { access_token, refresh_token, ...userSafe } = updatedUser;
-    res.json({ user: userSafe, token: newToken });
+    res.json({ user: userSafe });
   } catch (err) {
     console.error('Update name error:', err);
     res.status(500).json({ error: 'Failed to update name.' });
@@ -88,6 +110,14 @@ export const updateName = async (req, res) => {
 
 /* ---------------------- LOGOUT ---------------------- */
 export const logout = (req, res) => {
-  res.clearCookie('token');
+  // Clear cookie with same options used to set it
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    domain: process.env.NODE_ENV === 'production' ? '.outmail.in' : undefined,
+  };
+
+  res.clearCookie('token', cookieOptions);
   res.status(200).json({ success: true, message: 'Logged out successfully.' });
 };

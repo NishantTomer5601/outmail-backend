@@ -29,7 +29,32 @@ const PORT = process.env.PORT || 8080;
 
 connectDB();
 
-app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
+// Configure CORS to support credentials and multiple origins
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      process.env.FRONTEND_URL,
+      'https://outmail.in',
+      'https://www.outmail.in',
+      'http://localhost:3000', // For local development
+    ];
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // Enable cookies/credentials
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Set-Cookie'],
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -38,7 +63,12 @@ app.use(session({
   secret: process.env.JWT_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false }
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production', // HTTPS in production
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours for session
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  }
 }));
 
 app.use(passport.initialize());
