@@ -7,16 +7,18 @@ import {
   logout,
 } from '../controllers/authController.js';
 import { authenticateJWT } from '../middleware/auth.js';
+import { authRateLimiter, oauthRateLimiter, strictRateLimiter } from '../utils/authRateLimit.js';
 
 const router = express.Router();
 
-// Remove setupAppPassword route - no longer needed
-router.post('/update-name', authenticateJWT, updateName);
-router.get('/me', authenticateJWT, myDetails);
-router.post('/logout', logout);
+// Apply rate limiting to auth endpoints
+router.post('/update-name', authRateLimiter, authenticateJWT, updateName);
+router.get('/me', strictRateLimiter, authenticateJWT, myDetails);
+router.post('/logout', authRateLimiter, logout);
 
 router.get(
   '/google',
+  oauthRateLimiter,
   passport.authenticate('google', {
     scope: [
       'profile',
@@ -31,6 +33,7 @@ router.get(
 
 router.get(
   '/google/callback',
+  oauthRateLimiter,
   passport.authenticate('google', {
     failureRedirect: process.env.FRONTEND_URL + '/login?error=google_failed',
     session: false,
